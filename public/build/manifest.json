@@ -1,0 +1,37 @@
+{
+  "_lottie_light-DfYqET1l.js": {
+    "file": "assets/lottie_light-DfYqET1l.js",
+    "name": "lottie_light",
+    "isDynamicEntry": true
+  },
+  "resources/css/admin.css": {
+    "file": "assets/admin-CQgrR9dx.css",
+    "src": "resources/css/admin.css",
+    "isEntry": true,
+    "name": "admin",
+    "names": [
+      "admin.css"
+    ]
+  },
+  "resources/css/guests.css": {
+    "file": "assets/guests-DmCeYAtE.css",
+    "src": "resources/css/guests.css",
+    "isEntry": true,
+    "name": "guests",
+    "names": [
+      "guests.css"
+    ]
+  },
+  "resources/js/invitation.js": {
+    "file": "assets/invitation-CmfbxCF4.js",
+    "name": "invitation",
+    "src": "resources/js/invitation.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "_lottie_light-DfYqET1l.js"
+    ],
+    "css": [
+      "assets/invitation-19431O7p.css"
+    ]
+  }
+}

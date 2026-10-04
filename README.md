@@ -1,65 +1,122 @@
-# Senandika — Undangan Levi & Dio
+# Tivity Custom Invitation
 
-Undangan digital responsif bernuansa maroon, hitam, dan emas. Dibuat dengan Vite, JavaScript, CSS, Lucide, dan Lottie Web. Tidak menggunakan framework atau layanan eksternal untuk menjalankan halaman.
+Undangan digital fullstack berbasis Laravel 13, MySQL, Blade, Vite, Lottie, dan JavaScript. Aplikasi mendukung URL berbasis slug, personalisasi nama tamu, RSVP, ucapan publik, generator link tamu, login customer, dan moderasi ucapan.
 
-## Menjalankan
+## Kebutuhan
+
+- PHP 8.3 atau lebih baru
+- Composer 2
+- MySQL/MariaDB
+- Node.js 20 atau lebih baru
+- Ekstensi PHP: `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `intl`, `mbstring`, `openssl`, `pdo_mysql`, `tokenizer`, `xml`, dan `zip`
+
+## Instalasi lokal
 
 ```sh
+composer install
 npm install
-npm run dev
+copy .env.example .env
+php artisan key:generate
 ```
 
-Buka `http://localhost:5173`. Pada PowerShell yang memblokir `npm.ps1`, gunakan `npm.cmd run dev`.
+Atur koneksi database dan akun customer pada `.env`:
+
+```dotenv
+APP_URL=http://localhost:8000
+APP_TIMEZONE=Asia/Jakarta
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=undangan_digital_alya
+DB_USERNAME=root
+DB_PASSWORD=
+
+ADMIN_NAME="Nama Customer"
+ADMIN_EMAIL=customer@example.com
+ADMIN_PASSWORD="password-kuat-dan-unik"
+```
+
+Lanjutkan dengan:
 
 ```sh
+php artisan migrate --seed
 npm run build
-npm run preview
+php artisan serve
 ```
 
-Hasil produksi tersedia di `dist/`, siap untuk hosting statis pada root domain.
+Halaman penting:
 
-## Mengganti data
+- Undangan: `http://localhost:8000/alya-dan-salman`
+- Login customer: `http://localhost:8000/admin/login`
+- Dashboard: `http://localhost:8000/dashboard`
 
-- `src/config.js`: nama, keluarga, tanggal, kota, lokasi/peta, waktu akad/resepsi, rekening, alamat kado, tautan streaming, dan vendor.
-- Sesuaikan `date`, `dateLabel`, serta `start`/`end` setiap acara. Nilai kalender menggunakan UTC; 08.00 WIB = 01.00 UTC.
-- Ganti foto `public/images/wedding.jpg`, `moment.jpg`, dan `ceremony.jpg` dengan foto pasangan. Sesuaikan posisi crop di `src/style.css` jika diperlukan.
-- Cerita pasangan dan daftar galeri berada di `src/main.js`.
-- Metadata awal untuk pratinjau tautan dan favicon berada di `index.html` serta `public/favicon.svg`.
-- Personalisasi nama tamu melalui `/?to=Nadia%20%26%20Keluarga`.
-- `demo: true` menampilkan penanda rekening/alamat contoh. Ganti seluruh data sebelum menonaktifkannya.
+## Alur ucapan dan moderasi
 
-## Fitur
+Mode default adalah `manual`. Ucapan baru masuk dengan status `pending` dan hanya tampil setelah customer memilih **Tampilkan** dari dashboard. Mode dapat diganti menjadi `hybrid`; ucapan bersih akan langsung tampil sedangkan teks yang terindikasi kasar, spam, atau memuat tautan tetap ditahan.
 
-Pembuka, ayat dan salam, profil pasangan, countdown, akad/resepsi, peta, unduh kalender ICS, informasi streaming, cerita pasangan, galeri lightbox, hadiah transfer/kado dengan salin clipboard, RSVP/ucapan, catatan tamu, keluarga, vendor, dan penutup.
+Perlindungan yang diterapkan:
 
-Lottie dimuat saat mendekati layar dan berhenti saat di luar layar. Tersedia tombol jeda animasi dan dukungan `prefers-reduced-motion`. Musik ambient sintetis original dimulai setelah klik Buka Undangan atau tombol musik. Font, foto, dan aset animasi disimpan lokal.
+- validasi nama, kehadiran, jumlah tamu, dan panjang ucapan;
+- output tamu selalu di-escape;
+- CSRF protection;
+- honeypot bot;
+- rate limit per undangan dan alamat IP;
+- normalisasi kata tersamar sebelum pemeriksaan;
+- pemisahan data berdasarkan pemilik undangan;
+- token tamu acak dan batas pengiriman per token;
+- hash IP, bukan alamat IP mentah.
 
-## RSVP
+Daftar kata dan pola moderasi berada di `config/moderation.php`. Hasil filter hanya menahan ucapan untuk diperiksa, tidak menghapusnya otomatis.
 
-Versi ini adalah frontend. Secara default, ucapan hanya tersimpan di `localStorage` browser pengisi (maksimal 50 ucapan), sehingga belum diterima mempelai dan tidak terlihat oleh tamu lain. Tiga ucapan awal diberi label sebagai contoh.
+## Generator nama tamu
 
-Isi `rsvpEndpoint` dengan endpoint server milik Anda untuk mengirim POST JSON:
+Customer dapat membuka **Dashboard → Link Tamu**, lalu memasukkan satu nama per baris. Link yang dihasilkan berbentuk:
 
-```json
-{"name":"Nama tamu","attendance":"yes","guests":2,"message":"Selamat!","createdAt":"2026-10-03T00:00:00.000Z"}
+```text
+https://domain.com/alya-dan-salman?guest=TOKEN&to=Bapak%20Budi
 ```
 
-Server harus memvalidasi input, menyimpan data, memberi respons HTTP 2xx setelah berhasil, dan mengizinkan origin situs bila berbeda domain. Tampilan ucapan bersama memerlukan API pembacaan tambahan; belum disediakan dalam frontend ini. Tautan streaming kosong akan menampilkan informasi jadwal, bukan membuka tautan contoh.
+Token mengunci identitas tamu pada server. Mengubah parameter `to` tidak akan mengubah nama yang disimpan saat mengirim ucapan.
 
-## Pemeriksaan
+## Struktur data
 
-Dengan dev server aktif dan Google Chrome terpasang:
+- `users`: akun customer.
+- `invitations`: slug, pemilik, pengaturan moderasi, dan konten undangan JSON.
+- `guests`: nama tamu, token unik, dan batas pengiriman.
+- `wishes`: RSVP, ucapan, status moderasi, alasan penandaan, dan moderator.
+
+Data contoh undangan dibuat di `database/seeders/DatabaseSeeder.php`. Ganti data mempelai, tanggal, acara, rekening, lokasi, keluarga, dan vendor sebelum deployment produksi. Foto berada di `public/images`; Lottie berada di `public/lottie`.
+
+## Pengujian
 
 ```sh
+php artisan test
+npm run build
+```
+
+Untuk pengujian browser end-to-end, jalankan server terlebih dahulu:
+
+```sh
+php artisan serve
 node qa.mjs
 ```
 
-Pemeriksaan integrasi mencakup viewport desktop/ponsel, Lottie, nama tamu, kontrol musik/animasi, clipboard, tab hadiah, ICS, streaming, galeri, RSVP, persistensi, escaping input, dan reduced motion. Screenshot pemeriksaan tersimpan di `test-results/`.
+Pengujian mencakup penyimpanan ucapan, pending moderation, login customer, persetujuan ucapan, tampilan publik, generator token, isolasi customer, Lottie, clipboard, tampilan ponsel, dan reduced motion.
 
-## Sumber aset
+## Deployment Hostinger
 
-- Referensi section: https://luxee.net/premium/tema-06/
-- Lottie dari folder Luxee lokal yang disediakan pemilik proyek: `JSON LUXEE 1/bunga 1.json`, `JSON LUXEE 6/footer.json`, dan `JSON LUXEE 13/bunga1.json`. Hak aset tetap milik Luxee/Levidio; penggunaan mengikuti lisensi pembelian pemilik proyek. Aset ini bukan paket untuk didistribusikan ulang.
-- Foto ilustrasi: Unsplash (`photo-1519741497674-611481863552`, `photo-1511285560929-80b456fea0bc`, `photo-1523438885200-e635ba2c371e`). Ganti dengan foto pasangan untuk undangan final.
-- Font Google Fonts: Cormorant Garamond, DM Sans, dan Italianno. Lisensi SIL OFL disertakan dalam `public/fonts/`.
-- Ikon Lucide (ISC) dan lottie-web (MIT) melalui npm.
+1. Atur subdomain/domain dengan document root menuju folder `public` Laravel.
+2. Upload proyek atau clone repository melalui SSH.
+3. Buat `.env` produksi dengan `APP_ENV=production`, `APP_DEBUG=false`, URL domain, serta kredensial MySQL Hostinger.
+4. Jalankan `composer install --no-dev --optimize-autoloader`.
+5. Jalankan `npm ci && npm run build` secara lokal atau di server jika Node.js tersedia; folder `public/build` harus ikut deployment.
+6. Jalankan `php artisan key:generate`, `php artisan migrate --force`, dan `php artisan db:seed --force` saat instalasi awal.
+7. Jalankan `php artisan config:cache`, `php artisan route:cache`, dan `php artisan view:cache`.
+8. Pastikan `storage` dan `bootstrap/cache` dapat ditulis oleh PHP.
+
+Jangan menjalankan seeder berulang kali setelah data undangan diedit dari database tanpa meninjau efeknya, karena seeder memperbarui konten undangan contoh. Jangan pernah mengunggah `.env` ke GitHub.
+
+## Lisensi aset
+
+Lottie berasal dari folder Luxee lokal yang diberikan pemilik proyek. Penggunaan harus mengikuti lisensi pembelian Luxee/Levidio dan aset tidak boleh didistribusikan ulang sebagai produk generator/SaaS. Font memakai Cormorant Garamond, DM Sans, dan Italianno dengan lisensi SIL OFL yang disertakan di `public/fonts`.

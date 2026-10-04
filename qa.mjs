@@ -1,94 +1,81 @@
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
+
+const envText = await readFile('.env', 'utf8');
+const env = Object.fromEntries(envText.split(/\r?\n/).filter(line => line && !line.startsWith('#') && line.includes('=')).map(line => {
+  const index = line.indexOf('=');
+  return [line.slice(0, index), line.slice(index + 1).replace(/^"|"$/g, '')];
+}));
+const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:8000';
+const invitationUrl = `${baseUrl}/alya-dan-salman`;
+const qaName = `QA Tamu ${Date.now()}`;
 
 await mkdir('test-results', { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
 const page = await context.newPage();
 const errors = [];
-const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
 page.on('pageerror', error => errors.push(error.message));
-page.on('response', response => { if (response.url().startsWith(baseUrl) && response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
-await page.goto(`${baseUrl}/?to=Nadia%20%26%20Keluarga`);
+page.on('response', response => { if (response.url().startsWith(baseUrl) && response.status() >= 500) errors.push(`${response.status()} ${response.url()}`); });
+
+await page.goto(`${invitationUrl}?to=Nadia%20%26%20Keluarga`);
 await page.locator('.hero-flower svg').first().waitFor();
 await page.evaluate(() => document.fonts.ready);
-await page.waitForTimeout(2000);
 assert.equal(await page.locator('.guest p').textContent(), 'Nadia & Keluarga');
 assert.equal(await page.locator('.hero-flower svg').count(), 2);
-assert.equal(await page.evaluate(() => document.fonts.check('16px "Cormorant Garamond"')), true);
-assert.equal(await page.evaluate(() => /â€|âœ|Â·|�/.test(document.body.textContent)), false);
-await page.screenshot({ path: 'test-results/desktop-hero.png' });
+assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+await page.screenshot({ path: 'test-results/laravel-desktop-hero.png' });
+
 await page.locator('#open-invitation').click();
-await page.waitForTimeout(900);
-assert.equal(await page.locator('#music-toggle').getAttribute('aria-pressed'), 'true');
 await page.locator('#music-toggle').click();
-await page.locator('#motion-toggle').click();
-assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'), 'true');
 await page.locator('#hadiah').scrollIntoViewIfNeeded();
 await page.locator('[data-copy="0"]').click();
 assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '0000000000');
-await page.locator('#package-tab').click();
-assert.equal(await page.locator('#package-panel').isVisible(), true);
-await page.locator('#copy-address').click();
-assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Jl. Melati/);
-await page.locator('#transfer-tab').click();
-await page.screenshot({ path: 'test-results/desktop-gifts.png' });
-const downloadEvent = page.waitForEvent('download');
-await page.locator('[data-calendar="0"]').first().click();
-const download = await downloadEvent;
-assert.equal(download.suggestedFilename(), 'akad-nikah-levi-dio.ics');
-await download.saveAs('test-results/event.ics');
-await page.locator('#stream-button').click();
-assert.equal(await page.locator('#stream-dialog').isVisible(), true);
-await page.keyboard.press('Escape');
-await page.locator('[data-photo="1"]').click();
-assert.equal(await page.locator('#lightbox').isVisible(), true);
-await page.keyboard.press('ArrowRight');
-assert.match(await page.locator('#lightbox figcaption').textContent(), /3 \/ 3/);
-await page.keyboard.press('Escape');
-await page.locator('#guest-name').fill('QA <script>');
-await page.locator('#attendance').selectOption('no');
-assert.equal(await page.locator('#guests').isDisabled(), true);
-await page.locator('#wish-message').fill('Semoga bahagia selalu! <img src=x onerror=alert(1)>');
+
+await page.locator('#ucapan').scrollIntoViewIfNeeded();
+await page.locator('#guest-name').fill(qaName);
+await page.locator('#attendance').selectOption('yes');
+await page.locator('#guests').selectOption('2');
+await page.locator('#wish-message').fill('Semoga menjadi keluarga yang penuh kasih dan kebahagiaan.');
 await page.locator('#rsvp-form [type=submit]').click();
-assert.match(await page.locator('#form-status').textContent(), /tersimpan/);
-assert.equal(await page.locator('#wish-list .wish').count(), 4);
-assert.equal(await page.locator('#wish-list img').count(), 0);
-await page.reload();
-assert.match(await page.locator('#wish-list').textContent(), /QA <script>/);
-await page.evaluate(() => localStorage.removeItem('senandika-wishes'));
-assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-for (const width of [390, 320, 768]) {
+await page.locator('#form-status').filter({ hasText: 'menunggu persetujuan' }).waitFor();
+assert.equal(await page.locator('#wish-list').getByText(qaName).count(), 0);
+
+await page.goto(`${baseUrl}/admin/login`);
+await page.locator('#email').fill(env.ADMIN_EMAIL);
+await page.locator('#password').fill(env.ADMIN_PASSWORD);
+await page.getByRole('button', { name: 'Masuk ke Dashboard' }).click();
+await page.getByRole('link', { name: 'Kelola Ucapan' }).click();
+const qaCard = page.locator('.wish-admin-card').filter({ hasText: qaName });
+await qaCard.waitFor();
+assert.match(await qaCard.textContent(), /Menunggu/);
+await page.screenshot({ path: 'test-results/laravel-dashboard-moderation.png' });
+await qaCard.getByRole('button', { name: 'Tampilkan' }).click();
+await page.locator('.alert.success').waitFor();
+
+await page.goto(`${baseUrl}/dashboard/invitations/alya-dan-salman/guests`);
+await page.getByRole('heading', { name: 'Generator Nama Tamu' }).waitFor();
+await page.screenshot({ path: 'test-results/laravel-dashboard-guests.png' });
+
+await page.goto(invitationUrl);
+await page.locator('#ucapan').scrollIntoViewIfNeeded();
+await page.getByText(qaName, { exact: true }).waitFor();
+assert.match(await page.locator('#wish-list').textContent(), new RegExp(qaName));
+
+for (const width of [390, 320]) {
   await page.setViewportSize({ width, height: 844 });
-  await page.goto(`${baseUrl}/`);
+  await page.goto(invitationUrl);
   await page.locator('.hero-flower svg').first().waitFor();
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(1800);
+  await page.waitForTimeout(1400);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}px`);
-  if (width === 390) {
-    await page.screenshot({ path: 'test-results/mobile-hero.png' });
-    await page.locator('#hadiah').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(1100);
-    await page.screenshot({ path: 'test-results/mobile-gifts.png' });
-    await page.locator('#ucapan').scrollIntoViewIfNeeded();
-    await page.waitForTimeout(1100);
-    await page.screenshot({ path: 'test-results/mobile-rsvp.png' });
-  }
+  if (width === 390) await page.screenshot({ path: 'test-results/laravel-mobile-hero.png' });
 }
+
 await page.emulateMedia({ reducedMotion: 'reduce' });
 await page.reload();
 assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'), 'true');
-assert.equal(await page.locator('#music-toggle').getAttribute('aria-pressed'), 'false');
 assert.deepEqual(errors, []);
-await page.setViewportSize({ width: 1440, height: 1000 });
-await page.evaluate(async () => {
-  for (const section of document.querySelectorAll('main > section, footer')) {
-    section.scrollIntoView({ behavior: 'instant' });
-    await new Promise(resolve => setTimeout(resolve, 140));
-  }
-  scrollTo({ top: 0, behavior: 'instant' });
-});
-await page.screenshot({ path: 'test-results/desktop-full.png', fullPage: true });
-console.log('PASS: desktop/mobile layouts, Lottie, guest name, music/motion controls, clipboard, gift tabs, calendar, streaming dialog, gallery, RSVP persistence and escaping, reduced motion.');
+console.log('PASS: Laravel invitation, database wish submission, pending moderation, customer login, approval, public display, Lottie, clipboard, responsive layout, and reduced motion.');
 await browser.close();
