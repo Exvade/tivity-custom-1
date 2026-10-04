@@ -20,16 +20,28 @@ page.on('pageerror', error => errors.push(error.message));
 page.on('response', response => { if (response.url().startsWith(baseUrl) && response.status() >= 500) errors.push(`${response.status()} ${response.url()}`); });
 
 await page.goto(`${invitationUrl}?to=Nadia%20%26%20Keluarga`);
-await page.locator('.hero-flower svg').first().waitFor();
+await page.locator('.photo-arch img').waitFor();
 await page.evaluate(() => document.fonts.ready);
 assert.equal(await page.locator('.guest p').textContent(), 'Nadia & Keluarga');
 assert.equal((await page.locator('.footer-brand').innerText()).replace(/\s+/g, ' ').trim(), 'Digital invitation made by Tivity');
-assert.equal(await page.locator('.hero-flower svg').count(), 2);
+assert.equal(await page.locator('.hero-flower').count(), 0);
+assert.equal(await page.locator('.gallery-image').count(), 12);
 assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
 await page.screenshot({ path: 'test-results/laravel-desktop-hero.png' });
 
 await page.locator('#open-invitation').click();
 await page.locator('#music-toggle').click();
+await page.locator('#galeri').scrollIntoViewIfNeeded();
+await page.locator('.gallery-image').last().locator('img').waitFor();
+await page.locator('.gallery-image.revealed').first().waitFor();
+await page.waitForTimeout(1100);
+await page.screenshot({ path: 'test-results/laravel-desktop-gallery.png' });
+await page.locator('.gallery-image').first().click();
+await page.locator('#lightbox[open]').waitFor();
+assert.match(await page.locator('#lightbox figcaption').textContent(), /1 \/ 12/);
+await page.locator('.lightbox-next').click();
+assert.match(await page.locator('#lightbox figcaption').textContent(), /2 \/ 12/);
+await page.locator('#lightbox .dialog-close').click();
 await page.locator('#hadiah').scrollIntoViewIfNeeded();
 await page.locator('[data-copy="0"]').click();
 assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '0000000000');
@@ -67,11 +79,17 @@ assert.match(await page.locator('#wish-list').textContent(), new RegExp(qaName))
 for (const width of [390, 320]) {
   await page.setViewportSize({ width, height: 844 });
   await page.goto(invitationUrl);
-  await page.locator('.hero-flower svg').first().waitFor();
+  await page.locator('.photo-arch img').waitFor();
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(1400);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}px`);
-  if (width === 390) await page.screenshot({ path: 'test-results/laravel-mobile-hero.png' });
+  if (width === 390) {
+    await page.screenshot({ path: 'test-results/laravel-mobile-hero.png' });
+    await page.locator('#galeri').scrollIntoViewIfNeeded();
+    await page.locator('.gallery-image.revealed').first().waitFor();
+    await page.waitForTimeout(1100);
+    await page.screenshot({ path: 'test-results/laravel-mobile-gallery.png' });
+  }
 }
 
 await page.emulateMedia({ reducedMotion: 'reduce' });
