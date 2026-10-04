@@ -11,8 +11,10 @@ use Illuminate\Validation\Rule;
 
 class WishController extends Controller
 {
-    public function store(Request $request, Invitation $invitation, WishModerationService $moderator): JsonResponse
+    public function store(Request $request, WishModerationService $moderator): JsonResponse
     {
+        $invitation = Invitation::where('slug', config('invitation.default_slug'))->firstOrFail();
+
         abort_unless($invitation->is_published, 404);
 
         if ($request->filled('website')) {

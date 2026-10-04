@@ -47,7 +47,7 @@ php artisan serve
 
 Halaman penting:
 
-- Undangan: `http://localhost:8000/alya-dan-salman`
+- Undangan: `http://localhost:8000/`
 - Login customer: `http://localhost:8000/admin/login`
 - Dashboard: `http://localhost:8000/dashboard`
 
@@ -74,7 +74,7 @@ Daftar kata dan pola moderasi berada di `config/moderation.php`. Hasil filter ha
 Customer dapat membuka **Dashboard → Link Tamu**, lalu memasukkan satu nama per baris. Link yang dihasilkan berbentuk:
 
 ```text
-https://domain.com/alya-dan-salman?guest=TOKEN&to=Bapak%20Budi
+https://salman-dan-alya.danovadigital.com/?guest=TOKEN&to=Bapak%20Budi
 ```
 
 Token mengunci identitas tamu pada server. Mengubah parameter `to` tidak akan mengubah nama yang disimpan saat mengirim ucapan.

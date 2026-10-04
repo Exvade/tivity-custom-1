@@ -8,7 +8,7 @@ const env = Object.fromEntries(envText.split(/\r?\n/).filter(line => line && !li
   return [line.slice(0, index), line.slice(index + 1).replace(/^"|"$/g, '')];
 }));
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:8000';
-const invitationUrl = `${baseUrl}/alya-dan-salman`;
+const invitationUrl = `${baseUrl}/`;
 const qaName = `QA Tamu ${Date.now()}`;
 
 await mkdir('test-results', { recursive: true });
@@ -23,6 +23,7 @@ await page.goto(`${invitationUrl}?to=Nadia%20%26%20Keluarga`);
 await page.locator('.hero-flower svg').first().waitFor();
 await page.evaluate(() => document.fonts.ready);
 assert.equal(await page.locator('.guest p').textContent(), 'Nadia & Keluarga');
+assert.equal((await page.locator('.footer-brand').innerText()).replace(/\s+/g, ' ').trim(), 'Digital invitation made by Tivity');
 assert.equal(await page.locator('.hero-flower svg').count(), 2);
 assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
 await page.screenshot({ path: 'test-results/laravel-desktop-hero.png' });
@@ -37,7 +38,7 @@ await page.locator('#ucapan').scrollIntoViewIfNeeded();
 await page.locator('#guest-name').fill(qaName);
 await page.locator('#attendance').selectOption('yes');
 await page.locator('#guests').selectOption('2');
-await page.locator('#wish-message').fill('Semoga menjadi keluarga yang penuh kasih dan kebahagiaan.');
+await page.locator('#wish-message').fill('Semoga menjadi keluarga yang penuh kasih dan kebahagiaan. https://example.com');
 await page.locator('#rsvp-form [type=submit]').click();
 await page.locator('#form-status').filter({ hasText: 'menunggu persetujuan' }).waitFor();
 assert.equal(await page.locator('#wish-list').getByText(qaName).count(), 0);

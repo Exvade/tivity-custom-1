@@ -23,9 +23,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('wishes', function (Request $request) {
-            $invitation = $request->route('invitation');
-            $invitationKey = is_object($invitation) ? $invitation->getKey() : (string) $invitation;
-            $key = $invitationKey.':'.$request->ip();
+            $key = config('invitation.default_slug').':'.$request->ip();
 
             return [
                 Limit::perMinute(3)->by('minute:'.$key),

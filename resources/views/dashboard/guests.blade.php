@@ -8,7 +8,7 @@
 <div class="guest-list-heading"><h2>Link yang sudah dibuat</h2><span>{{ $guests->total() }} tamu</span></div>
 <div class="guest-link-list">
     @forelse($guests as $guest)
-        @php($guestUrl = route('invitation.show', $invitation).'?guest='.$guest->token.'&to='.rawurlencode($guest->name))
+        @php($guestUrl = route('invitation.show').'?guest='.$guest->token.'&to='.rawurlencode($guest->name))
         <article class="guest-link-card"><div><h3>{{ $guest->name }}</h3><p>{{ $guestUrl }}</p><span>{{ $guest->submission_count }} dari {{ $guest->max_submissions }} pengiriman digunakan</span></div><button type="button" class="secondary-button copy-guest-link" data-link="{{ $guestUrl }}">Salin Link</button></article>
     @empty
         <div class="empty-state">Belum ada link tamu. Masukkan daftar nama di atas untuk memulai.</div>

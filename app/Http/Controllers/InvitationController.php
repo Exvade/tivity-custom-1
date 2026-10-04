@@ -7,12 +7,14 @@ use Illuminate\View\View;
 
 class InvitationController extends Controller
 {
-    public function show(Invitation $invitation): View
+    public function show(): View
     {
+        $invitation = Invitation::where('slug', config('invitation.default_slug'))->firstOrFail();
+
         abort_unless($invitation->is_published || auth()->id() === $invitation->user_id, 404);
 
         $content = $invitation->content;
-        $content['rsvpEndpoint'] = route('wishes.store', $invitation);
+        $content['rsvpEndpoint'] = route('wishes.store');
         $content['csrfToken'] = csrf_token();
         $content['guestToken'] = request('guest');
         $content['guestName'] = $invitation->guests()

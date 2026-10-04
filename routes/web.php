@@ -8,7 +8,10 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\WishController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/alya-dan-salman');
+Route::get('/', [InvitationController::class, 'show'])->name('invitation.show');
+Route::post('/wishes', [WishController::class, 'store'])
+    ->middleware('throttle:wishes')
+    ->name('wishes.store');
 
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AuthController::class, 'create'])->name('login');
@@ -24,8 +27,3 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/invitations/{invitation}/guests', [DashboardGuestController::class, 'index'])->name('dashboard.guests');
     Route::post('/dashboard/invitations/{invitation}/guests', [DashboardGuestController::class, 'store'])->name('dashboard.guests.store');
 });
-
-Route::post('/{invitation}/wishes', [WishController::class, 'store'])
-    ->middleware('throttle:wishes')
-    ->name('wishes.store');
-Route::get('/{invitation}', [InvitationController::class, 'show'])->name('invitation.show');

@@ -11,9 +11,12 @@ class InvitationFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_root_redirects_to_the_default_invitation(): void
+    public function test_root_displays_the_default_invitation(): void
     {
-        $this->get('/')->assertRedirect('/alya-dan-salman');
+        $this->invitation();
+
+        $this->get('/')->assertOk()->assertSee('Alya &amp; Salman', false);
+        $this->get('/alya-dan-salman')->assertNotFound();
     }
 
     public function test_public_invitation_only_displays_approved_wishes(): void
@@ -24,7 +27,7 @@ class InvitationFlowTest extends TestCase
             ['guest_name' => 'Ucapan Pending', 'attendance' => 'yes', 'guest_count' => 1, 'message' => 'Belum boleh terlihat', 'status' => 'pending'],
         ]);
 
-        $response = $this->get('/'.$invitation->slug);
+        $response = $this->get('/');
 
         $response->assertOk()->assertSee('Ucapan Aman')->assertDontSee('Ucapan Pending');
     }
@@ -33,7 +36,7 @@ class InvitationFlowTest extends TestCase
     {
         $invitation = $this->invitation(['moderation_mode' => 'manual']);
 
-        $response = $this->postJson(route('wishes.store', $invitation), [
+        $response = $this->postJson(route('wishes.store'), [
             'name' => 'Bapak Budi',
             'attendance' => 'yes',
             'guests' => 2,
@@ -48,12 +51,12 @@ class InvitationFlowTest extends TestCase
     {
         $invitation = $this->invitation(['moderation_mode' => 'hybrid']);
 
-        $this->postJson(route('wishes.store', $invitation), [
+        $this->postJson(route('wishes.store'), [
             'name' => 'Tamu Baik', 'attendance' => 'yes', 'guests' => 1,
             'message' => 'Selamat menempuh hidup baru.',
         ])->assertCreated()->assertJsonPath('status', 'approved');
 
-        $this->postJson(route('wishes.store', $invitation), [
+        $this->postJson(route('wishes.store'), [
             'name' => 'Tamu Bermasalah', 'attendance' => 'no', 'guests' => 0,
             'message' => 'Pesan goblok yang harus ditahan.',
         ])->assertCreated()->assertJsonPath('status', 'pending');
@@ -114,7 +117,7 @@ class InvitationFlowTest extends TestCase
             'max_submissions' => 3,
         ]);
 
-        $this->postJson(route('wishes.store', $invitation), [
+        $this->postJson(route('wishes.store'), [
             'name' => 'Nama Palsu',
             'attendance' => 'yes',
             'guests' => 1,
