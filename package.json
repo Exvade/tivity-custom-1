@@ -1,0 +1,9 @@
+{
+  "name": "senandika-wedding-invitation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite --host 0.0.0.0", "build": "vite build", "preview": "vite preview --host 0.0.0.0" },
+  "dependencies": { "lottie-web": "^5.13.0", "lucide": "^0.468.0" },
+  "devDependencies": { "vite": "^6.4.1", "@playwright/test": "^1.51.0" }
+}
